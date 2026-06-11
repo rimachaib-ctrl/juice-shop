@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: MIT
  */
 
+// Security-sensitive helpers: JWT signing, sanitization, and role checks.
 import fs from 'node:fs'
 import crypto from 'node:crypto'
 import { type Request, type Response, type NextFunction } from 'express'

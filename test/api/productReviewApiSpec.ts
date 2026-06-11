@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: MIT
  */
 
+// API integration tests for product review endpoints.
 import { type IncomingMessage } from 'node:http'
 import * as frisby from 'frisby'
 import http from 'node:http'

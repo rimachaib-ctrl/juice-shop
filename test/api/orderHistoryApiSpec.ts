@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: MIT
  */
 
+// API integration tests for /rest/order-history.
 import * as frisby from 'frisby'
 import { expect } from '@jest/globals'
 import config from 'config'

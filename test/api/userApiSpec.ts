@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: MIT
  */
 
+// API integration tests for /api/Users.
 import { expect } from '@jest/globals'
 import * as frisby from 'frisby'
 
