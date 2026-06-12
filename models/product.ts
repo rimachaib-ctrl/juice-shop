@@ -18,6 +18,8 @@ import { type BasketItemModel } from './basketitem'
 import { challenges } from '../data/datacache'
 import * as security from '../lib/insecurity'
 
+export const updatableProductFields = ['name', 'description', 'price', 'deluxePrice', 'image'] as const
+
 class Product extends Model<
 InferAttributes<Product>,
 InferCreationAttributes<Product>
@@ -63,6 +65,19 @@ const ProductModelInit = (sequelize: Sequelize) => {
     {
       tableName: 'Products',
       sequelize,
+      validate: {
+        onlyUpdatableFields (this: Product) {
+          const allowedFields = new Set(this.isNewRecord ? [...updatableProductFields, 'createdAt', 'updatedAt'] : [...updatableProductFields, 'updatedAt'])
+          const changedFields = this.changed()
+
+          if (changedFields !== false) {
+            const invalidFields = changedFields.filter(field => !allowedFields.has(field))
+            if (invalidFields.length > 0) {
+              throw new Error(`Invalid product field(s): ${invalidFields.join(', ')}`)
+            }
+          }
+        }
+      },
       paranoid: true
     }
   )

@@ -19,6 +19,8 @@ const tamperingProductId = config.get<ProductConfig[]>('products').findIndex((pr
 const API_URL = 'http://localhost:3000/api'
 
 const authHeader = { Authorization: 'Bearer ' + security.authorize(), 'content-type': 'application/json' }
+const accountingHeader = { Authorization: 'Bearer ' + security.authorize({ data: { role: security.roles.accounting } }), 'content-type': 'application/json' }
+const customerHeader = { Authorization: 'Bearer ' + security.authorize({ data: { role: security.roles.customer } }), 'content-type': 'application/json' }
 const jsonHeader = { 'content-type': 'application/json' }
 
 describe('/api/Products', () => {
@@ -88,21 +90,53 @@ describe('/api/Products/:id', () => {
       .expect('json', 'message', 'Not Found')
   })
 
-  it('PUT update existing product is possible due to Missing Function-Level Access Control vulnerability', () => {
+  it('PUT update existing product is forbidden without authentication', () => {
     return frisby.put(API_URL + '/Products/' + tamperingProductId, {
-      header: jsonHeader,
+      headers: jsonHeader,
       body: {
         description: '<a href="http://kimminich.de" target="_blank">More...</a>'
       }
     })
+      .expect('status', 401)
+  })
+
+  it('PUT update existing product is forbidden for non-accounting users', () => {
+    return frisby.put(API_URL + '/Products/' + tamperingProductId, {
+      headers: customerHeader,
+      body: {
+        price: 1.99
+      }
+    })
+      .expect('status', 403)
+      .expect('json', 'error', 'Malicious activity detected')
+  })
+
+  it('PUT update existing product allows accounting users to change the price', () => {
+    return frisby.put(API_URL + '/Products/' + tamperingProductId, {
+      headers: accountingHeader,
+      body: {
+        price: 1.99
+      }
+    })
       .expect('status', 200)
       .expect('header', 'content-type', /application\/json/)
-      .expect('json', 'data', { description: '<a href="http://kimminich.de" target="_blank">More...</a>' })
+      .expect('json', 'data', { price: 1.99 })
+  })
+
+  it('PUT update existing product rejects disallowed fields', () => {
+    return frisby.put(API_URL + '/Products/' + tamperingProductId, {
+      headers: accountingHeader,
+      body: {
+        id: 999
+      }
+    })
+      .expect('status', 400)
+      .expect('json', 'error', 'Invalid product update payload')
   })
 
   xit('PUT update existing product does not filter XSS attacks', () => { // FIXME Started to fail regularly on CI under Linux
     return frisby.put(API_URL + '/Products/1', {
-      header: jsonHeader,
+      headers: accountingHeader,
       body: {
         description: '<script>alert(\'XSS\')</script>'
       }
