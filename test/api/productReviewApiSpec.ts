@@ -7,6 +7,7 @@ import { type IncomingMessage } from 'node:http'
 import * as frisby from 'frisby'
 import http from 'node:http'
 import config from 'config'
+import jwt from 'jsonwebtoken'
 
 import { type Product } from '../../data/types'
 import * as security from '../../lib/insecurity'
@@ -96,6 +97,24 @@ describe('/rest/products/reviews', () => {
 
   it('PATCH single product review editing need an authenticated user', () => {
     return frisby.patch(`${REST_URL}/products/reviews`, {
+      body: {
+        id: reviewId,
+        message: 'Lorem Ipsum'
+      }
+    })
+      .expect('status', 401)
+  })
+
+  it('PATCH single product review rejects forged HS256 token signed with the public key', () => {
+    const forgedToken = jwt.sign({
+      data: {
+        id: 1,
+        email: 'admin@juice-sh.op'
+      }
+    }, security.publicKey, { algorithm: 'HS256' })
+
+    return frisby.patch(`${REST_URL}/products/reviews`, {
+      headers: { Authorization: `Bearer ${forgedToken}` },
       body: {
         id: reviewId,
         message: 'Lorem Ipsum'

@@ -6,6 +6,9 @@
 import * as frisby from 'frisby'
 import { expect } from '@jest/globals'
 import config from 'config'
+import jwt from 'jsonwebtoken'
+
+import * as security from '../../lib/insecurity'
 
 const jsonHeader = { 'content-type': 'application/json' }
 const REST_URL = 'http://localhost:3000/rest'
@@ -97,6 +100,19 @@ describe('/rest/order-history/orders', () => {
         })
           .expect('status', 200)
       })
+  })
+
+  it('GET all orders rejects forged HS256 accountant token signed with the public key', () => {
+    const forgedToken = jwt.sign({
+      data: {
+        role: 'accounting'
+      }
+    }, security.publicKey, { algorithm: 'HS256' })
+
+    return frisby.get(REST_URL + '/order-history/orders', {
+      headers: { Authorization: 'Bearer ' + forgedToken, 'content-type': 'application/json' }
+    })
+      .expect('status', 403)
   })
 })
 
