@@ -31,25 +31,27 @@ describe('/#/search', () => {
 })
 
 describe('/rest/products/search', () => {
-  describe('challenge "unionSqlInjection"', () => {
-    it('query param in product search endpoint should be susceptible to UNION SQL injection attacks', () => {
-      cy.request(
-        "/rest/products/search?q=')) union select id,'2','3',email,password,'6','7','8','9' from users--"
-      )
-      cy.expectChallengeSolved({ challenge: 'User Credentials' })
-    })
+  it('query param in product search endpoint should not leak user data for UNION payloads', () => {
+    cy.request(
+      "/rest/products/search?q=')) union select id,'2','3',email,password,'6','7','8','9' from users--"
+    )
+      .its('body')
+      .then((sourceContent) => {
+        expect(sourceContent.data).to.have.length(0)
+      })
   })
 
-  describe('challenge "dbSchema"', () => {
-    it('query param in product search endpoint should be susceptible to UNION SQL injection attacks', () => {
-      cy.request(
-        "/rest/products/search?q=')) union select sql,'2','3','4','5','6','7','8','9' from sqlite_master--"
-      )
-      cy.expectChallengeSolved({ challenge: 'Database Schema' })
-    })
+  it('query param in product search endpoint should not leak schema data for UNION payloads', () => {
+    cy.request(
+      "/rest/products/search?q=')) union select sql,'2','3','4','5','6','7','8','9' from sqlite_master--"
+    )
+      .its('body')
+      .then((sourceContent) => {
+        expect(sourceContent.data).to.have.length(0)
+      })
   })
 
-  describe('challenge "dlpPastebinLeakChallenge"', () => {
+  describe('logically deleted products', () => {
     beforeEach(() => {
       cy.login({
         email: 'admin',
@@ -57,7 +59,7 @@ describe('/rest/products/search', () => {
       })
     })
 
-    it('search query should logically reveal the special product', () => {
+    it('search query should not reveal the special product through SQL comment markers', () => {
       cy.request("/rest/products/search?q='))--")
         .its('body')
         .then((sourceContent) => {
@@ -70,7 +72,7 @@ describe('/rest/products/search', () => {
               }
             })
             // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-            expect(foundProduct).to.be.true
+            expect(foundProduct).to.be.false
           })
         })
     })
