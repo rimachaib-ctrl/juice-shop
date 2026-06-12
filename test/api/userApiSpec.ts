@@ -55,14 +55,54 @@ describe('/api/Users', () => {
       })
   })
 
-  it('POST new admin', () => {
-    return frisby.post(`${API_URL}/Users`, {
+  for (const { email, role } of [
+    { email: 'horst2@horstma.nn', role: 'admin' },
+    { email: 'horst3@horstma.nn', role: 'deluxe' },
+    { email: 'horst4@horstma.nn', role: 'accounting' },
+    { email: 'horst5@horstma.nn', role: 'accountinguser' }
+  ]) {
+    it(`POST new user ignores requested ${role} role`, async () => {
+      await frisby.post(`${API_URL}/Users`, {
+        headers: jsonHeader,
+        body: {
+          email,
+          password: 'hooooorst',
+          role
+        }
+      })
+        .expect('status', 201)
+        .expect('header', 'content-type', /application\/json/)
+        .expect('jsonTypes', 'data', {
+          id: Joi.number(),
+          createdAt: Joi.string(),
+          updatedAt: Joi.string(),
+          password: Joi.any().forbidden()
+        })
+        .promise()
+
+      const loginResponse = await frisby.post(`${REST_URL}/user/login`, {
+        headers: jsonHeader,
+        body: {
+          email,
+          password: 'hooooorst'
+        }
+      })
+        .expect('status', 200)
+        .expect('jsonTypes', 'authentication', {
+          token: Joi.string()
+        })
+        .promise()
+
+      expect((security.decode(loginResponse.json.authentication.token) as any).data.role).toBe(security.roles.customer)
+    })
+  }
+
+  it('POST new user ignores requested role from a polluted prototype', async () => {
+    const email = 'horst6@horstma.nn'
+
+    await frisby.post(`${API_URL}/Users`, {
       headers: jsonHeader,
-      body: {
-        email: 'horst2@horstma.nn',
-        password: 'hooooorst',
-        role: 'admin'
-      }
+      body: `{"email":"${email}","password":"hooooorst","__proto__":{"role":"admin"}}`
     })
       .expect('status', 201)
       .expect('header', 'content-type', /application\/json/)
@@ -72,9 +112,22 @@ describe('/api/Users', () => {
         updatedAt: Joi.string(),
         password: Joi.any().forbidden()
       })
-      .expect('json', 'data', {
-        role: 'admin'
+      .promise()
+
+    const loginResponse = await frisby.post(`${REST_URL}/user/login`, {
+      headers: jsonHeader,
+      body: {
+        email,
+        password: 'hooooorst'
+      }
+    })
+      .expect('status', 200)
+      .expect('jsonTypes', 'authentication', {
+        token: Joi.string()
       })
+      .promise()
+
+    expect((security.decode(loginResponse.json.authentication.token) as any).data.role).toBe(security.roles.customer)
   })
 
   it('POST new blank user', () => {
@@ -128,68 +181,6 @@ describe('/api/Users', () => {
         created: Joi.string(),
         updatedAt: Joi.string(),
         password: Joi.any().forbidden()
-      })
-  })
-
-  it('POST new deluxe user', () => {
-    return frisby.post(`${API_URL}/Users`, {
-      headers: jsonHeader,
-      body: {
-        email: 'horst3@horstma.nn',
-        password: 'hooooorst',
-        role: 'deluxe'
-      }
-    })
-      .expect('status', 201)
-      .expect('header', 'content-type', /application\/json/)
-      .expect('jsonTypes', 'data', {
-        id: Joi.number(),
-        createdAt: Joi.string(),
-        updatedAt: Joi.string(),
-        password: Joi.any().forbidden()
-      })
-      .expect('json', 'data', {
-        role: 'deluxe'
-      })
-  })
-
-  it('POST new accounting user', () => {
-    return frisby.post(`${API_URL}/Users`, {
-      headers: jsonHeader,
-      body: {
-        email: 'horst4@horstma.nn',
-        password: 'hooooorst',
-        role: 'accounting'
-      }
-    })
-      .expect('status', 201)
-      .expect('header', 'content-type', /application\/json/)
-      .expect('jsonTypes', 'data', {
-        id: Joi.number(),
-        createdAt: Joi.string(),
-        updatedAt: Joi.string(),
-        password: Joi.any().forbidden()
-      })
-      .expect('json', 'data', {
-        role: 'accounting'
-      })
-  })
-
-  it('POST user not belonging to customer, deluxe, accounting, admin is forbidden', () => {
-    return frisby.post(`${API_URL}/Users`, {
-      headers: jsonHeader,
-      body: {
-        email: 'horst5@horstma.nn',
-        password: 'hooooorst',
-        role: 'accountinguser'
-      }
-    })
-      .expect('status', 400)
-      .expect('header', 'content-type', /application\/json/)
-      .then(({ json }) => {
-        expect(json.message).toBe('Validation error: Validation isIn on role failed')
-        expect(json.errors[0].field).toBe('role')
-        expect(json.errors[0].message).toBe('Validation isIn on role failed')
       })
   })
 

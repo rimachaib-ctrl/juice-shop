@@ -414,6 +414,16 @@ restoreOverwrittenFilesWithOriginals().then(() => {
   app.post('/api/Users', verify.registerAdminChallenge())
   app.post('/api/Users', verify.passwordRepeatChallenge()) // vuln-code-snippet hide-end
   app.post('/api/Users', verify.emptyUserRegistration())
+  app.post('/api/Users', (req: Request, res: Response, next: NextFunction) => {
+    const body = req.body ?? {}
+    req.body = {}
+    for (const field of ['email', 'password', 'passwordRepeat']) {
+      if (Object.prototype.hasOwnProperty.call(body, field)) {
+        req.body[field] = body[field]
+      }
+    }
+    next()
+  })
   /* Unauthorized users are not allowed to access B2B API */
   app.use('/b2b/v2', security.isAuthorized())
   /* Check if the quantity is available in stock and limit per user not exceeded, then add item to basket */
