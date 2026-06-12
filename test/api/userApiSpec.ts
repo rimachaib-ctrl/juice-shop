@@ -93,7 +93,7 @@ describe('/api/Users', () => {
         })
         .promise()
 
-      expect((security.decode(loginResponse.json.authentication.token) as any).data.role).toBe(security.roles.customer)
+      expect((security.decode(loginResponse.json.authentication.token)).data.role).toBe(security.roles.customer)
     })
   }
 
@@ -127,7 +127,7 @@ describe('/api/Users', () => {
       })
       .promise()
 
-    expect((security.decode(loginResponse.json.authentication.token) as any).data.role).toBe(security.roles.customer)
+    expect((security.decode(loginResponse.json.authentication.token)).data.role).toBe(security.roles.customer)
   })
 
   it('POST new blank user', () => {
