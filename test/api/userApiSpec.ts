@@ -55,7 +55,7 @@ describe('/api/Users', () => {
       })
   })
 
-  it('POST new admin', () => {
+  it('POST registration ignores admin role and persists customer role', () => {
     return frisby.post(`${API_URL}/Users`, {
       headers: jsonHeader,
       body: {
@@ -73,7 +73,22 @@ describe('/api/Users', () => {
         password: Joi.any().forbidden()
       })
       .expect('json', 'data', {
-        role: 'admin'
+        role: security.roles.customer
+      })
+      .then(() => {
+        return frisby.post(`${REST_URL}/user/login`, {
+          headers: jsonHeader,
+          body: {
+            email: 'horst2@horstma.nn',
+            password: 'hooooorst'
+          }
+        })
+          .expect('status', 200)
+          .then(({ json }) => {
+            const payload = security.decode(json.authentication.token)
+            const decodedToken = typeof payload === 'string' ? JSON.parse(payload) : payload
+            expect(decodedToken?.data.role).toBe(security.roles.customer)
+          })
       })
   })
 
@@ -131,7 +146,7 @@ describe('/api/Users', () => {
       })
   })
 
-  it('POST new deluxe user', () => {
+  it('POST registration ignores deluxe role', () => {
     return frisby.post(`${API_URL}/Users`, {
       headers: jsonHeader,
       body: {
@@ -149,11 +164,11 @@ describe('/api/Users', () => {
         password: Joi.any().forbidden()
       })
       .expect('json', 'data', {
-        role: 'deluxe'
+        role: security.roles.customer
       })
   })
 
-  it('POST new accounting user', () => {
+  it('POST registration ignores accounting role', () => {
     return frisby.post(`${API_URL}/Users`, {
       headers: jsonHeader,
       body: {
@@ -171,11 +186,11 @@ describe('/api/Users', () => {
         password: Joi.any().forbidden()
       })
       .expect('json', 'data', {
-        role: 'accounting'
+        role: security.roles.customer
       })
   })
 
-  it('POST user not belonging to customer, deluxe, accounting, admin is forbidden', () => {
+  it('POST registration ignores unknown role values', () => {
     return frisby.post(`${API_URL}/Users`, {
       headers: jsonHeader,
       body: {
@@ -184,12 +199,16 @@ describe('/api/Users', () => {
         role: 'accountinguser'
       }
     })
-      .expect('status', 400)
+      .expect('status', 201)
       .expect('header', 'content-type', /application\/json/)
-      .then(({ json }) => {
-        expect(json.message).toBe('Validation error: Validation isIn on role failed')
-        expect(json.errors[0].field).toBe('role')
-        expect(json.errors[0].message).toBe('Validation isIn on role failed')
+      .expect('jsonTypes', 'data', {
+        id: Joi.number(),
+        createdAt: Joi.string(),
+        updatedAt: Joi.string(),
+        password: Joi.any().forbidden()
+      })
+      .expect('json', 'data', {
+        role: security.roles.customer
       })
   })
 

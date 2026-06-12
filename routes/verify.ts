@@ -51,6 +51,9 @@ export const registerAdminChallenge = () => (req: Request, res: Response, next: 
   challengeUtils.solveIf(challenges.registerAdminChallenge, () => {
     return req.body && req.body.role === security.roles.admin
   })
+  if (req.body) {
+    req.body.role = security.roles.customer
+  }
   next()
 }
 
