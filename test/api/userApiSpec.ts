@@ -16,6 +16,7 @@ const API_URL = 'http://localhost:3000/api'
 const REST_URL = 'http://localhost:3000/rest'
 
 const authHeader = { Authorization: `Bearer ${security.authorize()}`, 'content-type': 'application/json' }
+const forgedAuthHeader = { Authorization: 'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRhIjp7ImVtYWlsIjoicnNhX2xvcmRAanVpY2Utc2gub3AifSwiaWF0IjoxNTgyMjIxNTc1fQ.ycFwtqh4ht4Pq9K5rhiPPY256F9YCTIecd4FHFuSEAg', 'content-type': 'application/json' }
 const jsonHeader = { 'content-type': 'application/json' }
 
 describe('/api/Users', () => {
@@ -27,6 +28,11 @@ describe('/api/Users', () => {
   it('GET all users', () => {
     return frisby.get(`${API_URL}/Users`, { headers: authHeader })
       .expect('status', 200)
+  })
+
+  it('GET all users rejects token forged with HS256 and the public RSA key', () => {
+    return frisby.get(`${API_URL}/Users`, { headers: forgedAuthHeader })
+      .expect('status', 401)
   })
 
   it('GET all users doesnt include passwords', () => {

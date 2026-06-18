@@ -82,6 +82,16 @@ describe('insecurity', () => {
     })
   })
 
+  describe('verify', () => {
+    it('returns true for tokens signed with the private RSA key', () => {
+      expect(security.verify(security.authorize({ data: { email: 'admin@juice-sh.op' } }))).to.equal(true)
+    })
+
+    it('returns false for tokens forged with HS256 and the public RSA key', () => {
+      expect(security.verify('eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRhIjp7ImVtYWlsIjoicnNhX2xvcmRAanVpY2Utc2gub3AifSwiaWF0IjoxNTgyMjIxNTc1fQ.ycFwtqh4ht4Pq9K5rhiPPY256F9YCTIecd4FHFuSEAg')).to.equal(false)
+    })
+  })
+
   describe('authenticatedUsers', () => {
     it('returns user by associated token', () => {
       security.authenticatedUsers.put('11111', { data: { id: 1 } as unknown as UserModel })
